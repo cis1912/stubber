@@ -43,9 +43,9 @@ chmod +x /usr/local/bin/stub
 To run the stubber, use the following command:
 
 ```bash
-stub [--copy] [--rm] <directory> [<directory> ...]"
+stub [--copy] [--rm] <directory> [<directory> ...]
 ```
 
 If the `--copy` argument is included, the stubbed files will be written to a copy, where all the new files will have `_stubbed` added to the end. If this argument is omitted, the files will be edited in place.
 
-If the `--rm` argument is included, the `SOLN` and `STUBWITH` lines will be removed, but the code in between won't actually. It doesn't actually stub, but rather just remove the stub comments. If it's not included, the stubber works as expected.
+If the `--rm` argument is included, the `SOLN` and `STUBWITH` lines will be removed, but the code in between won't actually be removed. It doesn't actually stub, but rather just remove the stub comments. If it's not included, the stubber works as expected.
