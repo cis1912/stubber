@@ -1,0 +1,101 @@
+#!/bin/bash
+
+# find . -type f -print0 | xargs -0 perl -i -0777pe 's/# ~~ SOLN[\s\S]*?# ~~ STUBWITH[ ]?(.*?)/$1/sg'
+
+ignore_patterns=(
+    "node_modules"
+    "*.log"
+    ".git"
+    ".vite"
+    ".vscode"
+    ".idea"
+    "__pycache__"
+    ".DS_Store"
+)
+
+WHITE='\033[0m'
+LIGHT_GREY='\033[0;90m'
+
+directories=()
+copy_mode=false
+rm_mode=false
+changed_files_count=0
+
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+        --copy)
+            copy_mode=true
+            ;;
+        --rm)
+            rm_mode=true
+            ;;
+        *)
+            directories+=("$1")
+            ;;
+    esac
+    shift
+done
+
+if [[ ${#directories[@]} -eq 0 ]]; then
+    echo "Usage: $(basename "$0") [--copy] [--rm] <directory> [<directory> ...]"
+    exit 1
+fi
+
+shopt -s extglob
+shopt -s nullglob
+
+should_ignore() {
+    local file=$1
+    for pattern in "${ignore_patterns[@]}"; do
+        case "$file" in
+            $pattern|*/$pattern|$pattern/*|*/$pattern/*) return 0 ;;
+        esac
+    done
+    return 1
+}
+
+for directory in "${directories[@]}"; do
+    if [[ ! -d "$directory" ]]; then
+        echo "Error: $directory is not a valid directory."
+        exit 1
+    fi
+    
+    for file in $(find "$directory" -type f); do
+        if should_ignore "$file"; then
+            continue
+        fi
+
+        tmpfile=$(mktemp)
+
+        if $rm_mode; then
+            perl -0777pe 's/^[ \t]*# ~~ SOLN.*?\n|^[ \t]*# ~~ STUBWITH.*?\n//mg' "$file" > "$tmpfile"
+        else
+            perl -0777pe 's/# ~~ SOLN[\s\S]*?# ~~ STUBWITH[ ]?(.*?)/$1/sg' "$file" > "$tmpfile"
+        fi
+
+        if ! diff -q "$file" "$tmpfile" > /dev/null; then
+            if $copy_mode; then
+                filename="${file%.*}"
+                extension="${file##*.}"
+
+                if [[ "$filename" == "$extension" ]]; then
+                    newfile="${filename}_stubbed"
+                else
+                    newfile="${filename}_stubbed.${extension}"
+                fi
+
+                mv "$tmpfile" "$newfile"
+                echo "Modified: ${file} -> ${newfile}"
+            else
+                mv "$tmpfile" "$file"
+                echo "Modified: ${file}"
+            fi
+            ((changed_files_count++))
+        else
+            rm "$tmpfile"
+            echo -e "${LIGHT_GREY}No change: $file${WHITE}"
+        fi
+    done
+done
+
+echo "Number of changed files: $changed_files_count"
