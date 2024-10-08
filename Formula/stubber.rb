@@ -1,4 +1,4 @@
-class Stub < Formula
+class Stubber < Formula
   desc "Installs the stub command"
   homepage "https://github.com/cis1912/stubber"
   url "https://github.com/cis1912/stubber/archive/refs/tags/v1.0.tar.gz"
@@ -7,5 +7,9 @@ class Stub < Formula
 
   def install
     bin.install "stub"
+  end
+
+  test do
+    system "#{bin}/stub"
   end
 end
